@@ -27,6 +27,7 @@ import akka.actor.{OneForOneStrategy, SupervisorStrategy}
 import akka.routing.RoundRobinRouter
 
 import de.kp.spark.meta.Configuration
+import de.kp.spark.meta.model._
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.Future
@@ -52,18 +53,33 @@ class MetaMaster extends Actor with ActorLogging {
       implicit val timeout:Timeout = DurationInt(duration).second
 	  	    
 	  val origin = sender
+	  val deser = Serializer.deserializeRequest(req)
       
-	  val response = ask(router,req).mapTo[String]
+	  val response = ask(router,req).mapTo[ServiceResponse]
       response.onSuccess {
         case result => origin ! result
       }
       response.onFailure {
-        case throwable => origin ! throwable.getMessage()      
+        case throwable => origin ! failure(deser,throwable.getMessage())      
 	  }
       
     }
   
     case _ => {}
+    
+  }
+ 
+  private def failure(req:ServiceRequest,message:String):ServiceResponse = {
+    
+    if (req == null) {
+      val data = Map("message" -> message)
+      new ServiceResponse("","",data,ResponseStatus.FAILURE)	
+      
+    } else {
+      val data = Map("uid" -> req.data("uid"), "message" -> message)
+      new ServiceResponse(req.service,req.task,data,ResponseStatus.FAILURE)	
+    
+    }
     
   }
 

@@ -19,45 +19,24 @@ package de.kp.spark.meta.redis
 */
 
 import java.util.Date
+
+import de.kp.spark.meta.model._
 import scala.collection.JavaConversions._
 
 object RedisCache {
 
   val client  = RedisClient()
-  
-  def addMeta(uid:String,meta:String) {
-   
+
+  def addFields(req:ServiceRequest,fields:Fields) {
+    
     val now = new Date()
     val timestamp = now.getTime()
     
-    val k = "meta:" + uid
-    val v = "" + timestamp + ":" + meta
+    val k = "fields:" + req.service + ":" + req.data("uid")
+    val v = "" + timestamp + ":" + Serializer.serializeFields(fields)
     
     client.zadd(k,timestamp,v)
     
-  }
-  
-  def metaExists(uid:String):Boolean = {
-
-    val k = "meta:" + uid
-    client.exists(k)
-    
-  }
-  
-  def meta(uid:String):String = {
-
-    val k = "meta:" + uid
-    val metas = client.zrange(k, 0, -1)
-
-    if (metas.size() == 0) {
-      null
-    
-    } else {
-      
-      metas.toList.last
-      
-    }
-
   }
 
 }
